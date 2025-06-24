@@ -1,0 +1,73 @@
+# MATLAB backup and autosave files
+*.asv
+*.m~
+*.fig~
+
+# MATLAB code analyzer reports
+coderassumptions.txt
+
+# Simulink cache files
+slprj/
+sfprj/
+sccprj/
+*_grt_rtw/
+*_ert_rtw/
+*_slrt_rtw/
+rtw/
+
+# folders
+eigenSpace/
+data/3dModels/
+
+# Simulink generated files
+*.mex*
+*.tlc
+*.log
+*.dll
+*.lib
+*.exp
+*.pdb
+*.obj
+
+# Simulink test artifacts
+*.autosave
+
+# Temporary files
+*.tmp
+*.bak
+*.swp
+*.swo
+*.old
+*.orig
+
+# Operating system files
+.DS_Store
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+
+# VSCode settings (optional, if you use VSCode)
+.vscode/
+
+# Jupyter Notebook (if used for documentation)
+.ipynb_checkpoints/
+
+# Python virtual environments (if hybrid projects)
+venv/
+__pycache__/
+*.pyc
+
+# Research data directories (to be managed by LFS instead)
+results/
+
+# Ignore large datasets except via LFS
+*.mat
+*.h5
+*.nc
+*.dat
+
+# Research notes (if you want to exclude personal notes)
+notes/private/
+
+# Git LFS pointers (do not ignore these!)
+!.gitattributes
