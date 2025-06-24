@@ -1,8 +1,4 @@
 %[text] # script for single spin experiment
-% clc
-% clear
-% cls
-
 function mainExp(cam, imageHandle)
 %[text] ## initialization
 % initialize robot arm

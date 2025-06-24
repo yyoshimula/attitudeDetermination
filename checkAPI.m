@@ -1,3 +1,6 @@
+%%  check roboto arm API
+
+
 %% 0. Python と SDK をロード
 pyenv("Version", fullfile(getenv("HOME"),"venv/xarm/bin/python3.10"), ...
     "ExecutionMode","InProcess");
