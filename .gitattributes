@@ -1,12 +1,11 @@
 # Git LFS設定
 # data/フォルダ内のすべてのファイルをLFSで管理
 data/** filter=lfs diff=lfs merge=lfs -text
-
 # 特定の画像ファイル形式をLFSで管理
 *.jpeg filter=lfs diff=lfs merge=lfs -text
 *.jpg filter=lfs diff=lfs merge=lfs -text
 *.png filter=lfs diff=lfs merge=lfs -text
 *.tiff filter=lfs diff=lfs merge=lfs -text
-
 # MATLABデータファイル
 *.mat filter=lfs diff=lfs merge=lfs -text
+*.pdf filter=lfs diff=lfs merge=lfs -text
