@@ -68,6 +68,64 @@ results/
 
 # Research notes (if you want to exclude personal notes)
 notes/private/
+archive/
 
 # Git LFS pointers (do not ignore these!)
 !.gitattributes
+
+# ---- LaTeX intermediate and output files ----
+*.aux
+*.bbl
+*.blg
+*.brf
+*.idx
+*.ilg
+*.ind
+*.lof
+*.log
+*.lot
+*.out
+*.toc
+*.acn
+*.acr
+*.alg
+*.glg
+*.glo
+*.gls
+*.ist
+*.fls
+*.fdb_latexmk
+*.synctex.gz
+*.nav
+*.snm
+*.vrb
+*.xdv
+*.nlo
+*.nls
+
+figs/
+
+# ---- Temporary files and backups ----
+*~
+*.bak
+*.sav
+*.dvi
+*.ps
+*.tmp
+*.backup
+
+# ---- Editor and OS-specific files ----
+.DS_Store
+Thumbs.db
+desktop.ini
+*.swp
+*.swo
+*.swn
+*.lock
+
+# ---- latexmk generated files ----
+latexmkrc
+*.dvi
+
+# ---- Overleaf metadata ----
+*.synctex(busy)
