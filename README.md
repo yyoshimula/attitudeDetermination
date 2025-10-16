@@ -8,12 +8,24 @@
 attitudeDetermination/
 ├── docs/                    # 実験資料・ドキュメント
 │   ├── main.tex            # 実験手順書LaTeX原稿
-│   ├── main.pdf            # 実験手順書PDF
-│   └── yoshimura.bib       # 参考文献データベース
+│   ├── main.pdf            # 実験手順書PDF（Git LFS管理）
+│   ├── yoshimura.bib       # 参考文献データベース
+│   ├── figs/               # 実験手順書用図表
+│   └── latexmkrc          # LaTeX自動コンパイル設定
 ├── data/                    # 実験データ
 │   ├── 20250502/           # 実験日別データ（例：2025年5月2日）
 │   ├── 20250507/           # 実験日別データ（例：2025年5月7日）
+│   ├── 20250609/           # 2025年6月9日実験データ
+│   ├── 20250616/           # 2025年6月16日実験データ
+│   ├── 20250623/           # 2025年6月23日実験データ
+│   ├── 20250630/           # 2025年6月30日実験データ
+│   ├── 20250707/           # 2025年7月7日実験データ
+│   ├── 20250714/           # 2025年7月14日実験データ
+│   ├── 20250722/           # 2025年7月22日実験データ
+│   ├── 3dModels/           # 3Dモデルデータ
 │   └── ...                 # その他の実験日データ
+├── eigenSpace/             # 固有空間法関連ファイル
+├── archive/                # アーカイブファイル
 ├── controller.mlapp        # MATLAB App Designer コントローラ
 ├── mainEigenSpace.mlx      # 固有空間法メインプログラム（Live Script）
 ├── mainExp.m               # 実験メインプログラム
@@ -25,7 +37,8 @@ attitudeDetermination/
 ├── testRobotArm.m         # ロボットアーム動作テスト
 ├── checkAPI.m             # API接続確認
 ├── imgaussian.m           # 画像ガウシアン処理
-└── testShot.jpeg          # テスト撮影画像
+├── testShot.jpeg          # テスト撮影画像
+└── .gitattributes         # Git LFS設定ファイル
 ```
 
 ## 主要ファイルの説明
