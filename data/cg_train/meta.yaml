@@ -1,7 +1,5 @@
 model_path: models/akatsuki.obj
 model_scale: 0.1
-exclude_parts: []
-exclude_region: {}
 geometry_groups:
   bus:
     x_min: -8.0
@@ -18,17 +16,19 @@ mount_rotate:
   - 1
   - 0
   - 0
-  deg: 90
+  deg: 270
 sweep_axis:
-- 0
-- 1
-- 0
+- 0.0
+- -1.0
+- 0.0
+sweep_tilt_deg: 30
+spin_frame: body
 sweep_start_deg: 0
 sweep_end_deg: 360
 frames: 36
-samples: 96
-width: 640
-height: 360
+samples: 128
+width: 960
+height: 540
 camera_origin:
 - 0
 - 0
@@ -39,9 +39,11 @@ camera_target:
 - 0
 camera_fov: 60
 sun_direction:
-- -0.2
-- -0.7
-- -0.6
+- 0.8660254037844386
+- -0.0
+- -0.5000000000000001
+sun_azimuth_deg: 60
+sun_elevation_deg: 0
 sun_irradiance:
 - 5
 - 5
