@@ -1,0 +1,72 @@
+# ===== 航空宇宙工学実験「宇宙機の姿勢決定」 学生配布用リポジトリ .gitignore =====
+
+# --- 教員/開発用ドキュメント（学生には配布しない） ---
+CLAUDE.md
+AGENTS.md
+CHANGELOG.md
+**/CLAUDE.md
+**/AGENTS.md
+
+# --- CGレンダラ（学生には配布しない。CG学習画像は code/data/cg_train に同梱済み） ---
+#     ※ レンダラも配布したい場合はこの行を削除（ただし venv/assets が巨大なので注意）
+code/mRendering/
+
+# --- Python 仮想環境・キャッシュ ---
+**/venv/
+**/.venv/
+**/env/
+**/__pycache__/
+*.py[cod]
+*$py.class
+
+# --- レンダラ・実験の出力 ---
+**/output/
+**/runs/
+*.log
+
+# --- LaTeX ビルド生成物（main.pdf は残す。生成物のみ無視） ---
+*.aux
+*.bbl
+*.blg
+*.fls
+*.fdb_latexmk
+*.out
+*.toc
+*.lof
+*.lot
+*.synctex.gz
+*.synctex(busy)
+*.xdv
+*.dvi
+*.nav
+*.snm
+*.vrb
+
+# --- 大容量の編集用ソース（配布不要） ---
+*.afdesign
+
+# --- 手順書で使っていない作業用画像（手順書は docs/figs を使用） ---
+/figs/
+スクリーンショット*.png
+3dModels/
+docs/archive/
+
+# --- MATLAB 一時/バックアップ ---
+*.asv
+*.m~
+*.fig~
+slprj/
+sfprj/
+sccprj/
+
+# --- エディタ設定 ---
+.vscode/
+.cursor/
+.idea/
+.claude/
+
+# --- OS ---
+.DS_Store
+Thumbs.db
+ehthumbs.db
+desktop.ini

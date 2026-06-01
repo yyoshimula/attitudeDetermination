@@ -1,0 +1,327 @@
+% !TEX program = xelatex
+\documentclass{article}
+
+\usepackage{fontspec}
+\usepackage{xeCJK}
+\setmainfont{Times New Roman}
+\setCJKmainfont{Hiragino Mincho ProN}
+\setCJKsansfont{Hiragino Kaku Gothic ProN}
+\setCJKmonofont{Hiragino Kaku Gothic ProN}
+\XeTeXlinebreaklocale "ja"
+\XeTeXlinebreakskip = 0pt plus 1pt
+\renewcommand{\baselinestretch}{1.3}
+\usepackage{geometry}
+\geometry{verbose,tmargin=2cm,bmargin=2cm,lmargin=2.5cm,rmargin=2.5cm}
+\usepackage{amsmath}
+\usepackage{amsfonts}
+\usepackage{bm}
+\usepackage{graphicx}
+\usepackage{authblk}
+\usepackage{url}
+\usepackage{comment}
+\usepackage{multirow}
+\usepackage[normalem]{ulem}
+\usepackage{sectsty}
+% 見出しはゴシック体（CJKサンセリフ = Hiragino Kaku Gothic）に
+\allsectionsfont{\sffamily\bfseries}
+% for hyperref
+\usepackage[bookmarkstype=toc, colorlinks=false, pdfborder={0 0 0}, bookmarks=true, bookmarksnumbered=true]{hyperref}
+
+\renewcommand{\figurename}{図}
+\renewcommand{\tablename}{表}
+
+
+\begin{document}
+
+\title{宇宙機の姿勢決定}
+
+\author[1]{yasuhiro yoshimura}
+\affil[1]{Kyushu University, y.yoshimura.a64@m.kyushu-u.ac.jp}
+
+\maketitle
+% \tableofcontents
+
+
+\section{目的}
+燃料補給，修理，デブリ除去といった宇宙機の軌道上サービスミッション（On-Orbit Servicing, OOS）では，自身の状態だけでなく，ターゲットの相対軌道・姿勢を決定することが求められる．
+本実験では，カメラで撮像されたターゲットの画像を用いた相対姿勢決定を扱う．
+
+本実験のねらいは，姿勢決定手法の性能を評価することだけではなく，次を体験し考察することである．
+\begin{itemize}
+\item \uline{Sim2Realドメインギャップを定量的に実感する}：CG画像で学習した固有空間で，実画像の姿勢をどこまで決定できる（できない）かを試行する．
+\item \uline{その原因を分析する}：CGと実画像の見えの差（反射特性・陰影・背景・露出など）のうち，何が精度に効くかを切り分ける．
+\item \uline{条件変化への汎化を評価する}：学習時と異なる光学条件では精度がどう落ちるかを確かめ，``学習した条件でしか効かない''ことを理解する．
+\item \uline{ロバスト化の手段を提案する}：ドメインギャップと条件変化の両方に強くするには，何を変えればよいかを考える．
+\end{itemize}
+これらは地上では模擬・CGで準備し，軌道上では異なる光学条件で運用するというOOSの現実と対応している．
+
+\section{基礎}
+\subsection{軌道上サービスミッション（On-Orbit Servicing, OOS）}
+軌道上の物体に対する近接運用を軌道上サービス（OOS）と呼ぶ．OOSは一般に1)アプローチ，2)観測，3)サービス，4)軌道遷移の4つのフェイズからなる．本実験は2)観測フェイズにおける相対姿勢推定を想定する．
+光学カメラは低コストであり，遠距離から近距離まで対応可能であることから相対状態推定に用いられる．
+光学カメラを用いた姿勢推定の古典的な手法に特徴点を用いたものがあるが，軌道上は地球アルベド以外の反射光がないため，姿勢による陰がはっきりと現れ（例えばAstroscale社による図~\ref{fig:h2a}），マッチングが困難になることがある．また光学条件が軌道周回によって変化することも難しさのひとつである．
+\begin{figure}[tb]
+\centering
+\includegraphics[width=8cm]{./figs/astroscaleH2A.png}
+\caption{軌道上のH2A上段 (c)Astroscale}
+\label{fig:h2a}
+\end{figure}
+
+\begin{comment}
+\subsection{姿勢}\label{sec:attitude}
+宇宙機の``姿勢''を定義する．ここでは姿勢を``2つの座標系を結ぶ回転''として定義する．
+例えば，空間に固定された慣性座標系($i$系)と宇宙機に固定された機体固定座標系($b$系)を設定し，$i$系を回転させて$b$系に一致させることを考える（Fig.~\ref{fig:i2b}）．その回転を適当なパラメータ（$\phi,\theta,\psi$など）で定量的に表したものが宇宙機の``姿勢''（厳密には$i$系に対する$b$系の姿勢）である．
+
+座標系は何でも良く，RSW座標系を回転させて，$b$系に一致させる場合，その回転（つまり姿勢）はRSW座標系に対する宇宙機（$b$系）の姿勢を意味する．
+$b$系を回転させてRSW座標系へ一致させる回転は意味が異なり，その回転の場合は$b$系に対するRSW系の姿勢になってしまう．
+そのため，どの座標系に対する姿勢なのか，を意識することが大事である．
+また，基本的に宇宙機の姿勢を扱う場合は，ある基準座標系（慣性系やRSW系）に対する宇宙機の姿勢を考えるため，基準座標系を回転させて$b$系に一致させる回転を宇宙機の姿勢とする．
+（つまり，$b$系を回転させて，基準座標系へ一致させる回転を宇宙機の姿勢とはしない．）
+\begin{figure}[tb]
+\centering
+\includegraphics[width=7cm]{./figs/i2b.pdf}
+\caption{座標系の回転}
+\label{fig:i2b}
+\end{figure}
+
+\subsection{オイラー角}
+オイラー角は直観的理解が容易で，頻繁に使われる姿勢表現である．
+各座標軸（$x,y,z$）周りの連続する3回転によって表現される．
+回転角$\beta$に対する$x,y,z$軸の周りの回転行列はそれぞれ
+\begin{align}
+R_{x}(\beta)&=\begin{bmatrix}
+1  &  0  &  0\\
+ 0  &  \cos\beta\   &  \sin\beta\\
+ 0  &  -\sin\beta\   &  \cos\beta
+\end{bmatrix} \\
+R_{y}(\beta) &= \begin{bmatrix}
+\cos\beta & 0 & -\sin\beta\\
+0 & 1 & 0\\
+\sin\beta & 0 & \cos\beta
+\end{bmatrix}\\
+R_{z}(\beta)&=\begin{bmatrix}
+\cos\beta & \sin\beta & 0\\
+-\sin\beta & \cos\beta & 0\\
+0 & 0 & 1
+\end{bmatrix}
+\end{align}
+となる．
+この基本的な回転行列を組み合わせることで全てのオイラー角の回転行列が計算される．
+
+例えばZYXオイラー角を用いた$i$系から$b$系への回転行列$R_{b/i}$は
+\begin{align}
+R_{b/i} & =R_{x}(\psi)R_{y}(\theta)R_{z}(\phi)\\
+&= \left[\begin{array}{ccc}
+\cos\theta\cos\phi & \cos\theta\sin\phi & -\sin\theta\\
+\sin\theta\sin\psi\cos\phi-\cos\psi\sin\phi & \sin\theta\sin\psi\sin\phi+\cos\psi\cos\phi & \cos\theta\sin\psi\\
+\sin\theta\cos\psi\cos\phi+\sin\psi\sin\phi & \sin\theta\cos\psi\sin\phi-\sin\psi\cos\phi & \cos\theta\cos\psi
+\end{array}\right]
+\end{align}
+となる．
+他のオイラー角(XYZなど)の回転行列を求める場合は，各軸回りの回転行列の順序を変えるだけで良い(e.g.,XYZオイラー角は$R_{b/i}=R_{z}(\psi)R_{y}(\theta)R_{x}(\phi)$である)．
+\end{comment}
+
+\subsection{固有空間法}
+本実験では姿勢決定に固有空間法を用いる~\cite{10.1299/jsmermd.2013._2p1-m08_1,10.2322/jjsass.64.253}．固有空間法はターゲットの様々な姿勢の画像を学習データとし，その共分散から固有空間を生成する．
+そして，推定したい姿勢の画像をその固有空間に射影することで姿勢決定を行う．
+
+学習データの画素数を$M$，学習データ数を$N$とする．画像を$M$次元ベクトルとして，学習データ行列を
+\begin{align}
+X = [\bm{x}_{1},\bm{x}_{2},\cdots,\bm{x}_{N}] \in \mathbb{R}^{M\times N}
+\end{align}
+と表すことができる．
+平均ベクトル
+\begin{align}
+\bm{c}  = \frac{1}{N}\sum_{i=1}^{N} \bm{x}_{i}
+\end{align}
+を用いて学習データの平均ゼロ化を次式で行う．
+\begin{align}
+\bar{X} = [\bm{x}_{1}-\bm{c},\cdots, \bm{x}_{N}-\bm{c}]
+\end{align}
+共分散
+\begin{align}
+Q = \frac{1}{N}\bar{X}\bar{X}^{T}
+\end{align}
+を計算し，その固有ベクトルを$\bm{e}_{i}$ (i=1,\dots, N)とする．
+固有値の大きい上位$k$個の用いて固有空間を形成する．
+この固有空間に対して，例えば$i$番目の画像を
+\begin{align}
+\hat{\bm{x}}_{i} = [\bm{e}_{1},\bm{e}_{2},\cdots, \bm{e}_{k}]^{T} (\bm{x}_{i}- \bm{c})
+\end{align}
+として固有間に射影する．このベクトル$\hat{\bm{x}}_{i}$は$k$次元ベクトルであり，$M$次元の情報が$k$次元に圧縮されている．次元$k$の決め方は寄与率とその累積を用いることができる．寄与率は
+\begin{align}
+s_{j} = \frac{\lambda_{j}}{\sum_{i=1}^{M}\lambda_{i}}
+\end{align}
+と定義され，$j$番目の学習データが画像をどの程度表現できるかを示す．ここで$\lambda_{i}$は$i$番目の固有値である．
+累積寄与率$t_{j}$は上位$j$番目までの固有空間の寄与率の合計，つまり
+\begin{align}
+t_{j} = \sum_{i=1}^{j}s_{i}
+\end{align}
+と計算される．
+
+姿勢推定したいターゲットの画像を$y\in \mathbb{R}^{M}$とする．同様に，平均ゼロ化し，固有空間へ射影する．
+\begin{align}
+\hat{\bm{y}} = [\bm{e}_{1},\bm{e}_{2},\cdots, \bm{e}_{k}]^{T} (\bm{y}- \bm{c})
+\end{align}
+（素朴には）この$\hat{\bm{y}}$と固有空間における学習データ$\hat{\bm{x}}_{i}  (i=1,\dots, N)$とのユークリッド距離が最小になる姿勢を推定姿勢とする．
+
+
+\section{構成・仕様}
+実験装置は図~\ref{fig:config}のように構成される．
+ロボットアーム先端に宇宙機モデルを設置し，アームにより回転させることができる．
+平行光源を任意の方向からモデルへ照射し，リニアレール上のカメラからターゲットを撮像する（撮像例:図~\ref{fig:testShot}）．
+測定時は外乱光を抑制するために，暗幕を用いる．
+ロボットアームと平行光の仕様は表~\ref{tab:armLight}のとおりである．
+
+\begin{figure}[h]
+\centering
+\includegraphics{./figs/config.pdf}
+\caption{装置構成}
+\label{fig:config}
+\end{figure}
+
+\begin{figure}[tb]
+\centering
+\includegraphics[width=7cm]{./figs/testShot2.jpeg}
+\caption{撮像例}
+\label{fig:testShot}
+\end{figure}
+
+\begin{table}[htb]
+\begin{center}
+\caption{ロボットアームと光源の諸元} \label{tab:armLight}
+\begin{tabular}{ll}
+\hline \hline
+\multicolumn{2}{l}{\textbf{ロボットアーム}}\\
+製品 & UFACTORY LITE 6\\
+自由度 & 6\\
+動作領域図 & 図~\ref{fig:arm}参照\\
+\hline
+\multicolumn{2}{l}{\textbf{光源}}\\
+製品 & ホロライト\\
+電力 & 3 W\\
+配光特性（広がり角） & $0.48-15$ deg\\
+\hline \hline
+\end{tabular}
+\end{center}
+\end{table}
+
+\begin{figure}[tb]
+\centering
+\includegraphics[width=6cm]{./figs/robotArm.pdf}
+\caption{ロボットアーム動作範囲}
+\label{fig:arm}
+\end{figure}
+
+\section{手順}
+本実験では，固有空間法による相対姿勢決定を題材に，\uline{学習データの作り方}（CG画像 vs 実画像）と\uline{評価条件の変化}（基準条件 vs 条件変更）が姿勢推定精度に与える影響を多角的に評価する．
+問題の簡単化のため，ターゲットは1軸まわりのシングルスピンのみを扱う．
+
+学習データには2種類を用いる．
+\begin{itemize}
+\item \uline{CG学習データ}：物理ベースレンダラ（Mitsuba 3）でターゲットの3Dモデルをレンダリングした画像．実画像と同じ姿勢角サンプリングで\uline{生成・配布}される（教員が準備）．マテリアルの反射特性・テクスチャ・背景は簡易化してあり，実画像との間に\uline{ドメインギャップ}（シミュレーションと実物の見えの差，Sim2Realギャップ）が残る．
+\item \uline{実画像学習データ}：実験室で同じターゲットを基準条件下でシングルスピン撮像した画像．
+\end{itemize}
+評価のためのテストデータは実画像とし，\uline{基準条件}と\uline{条件変更}の2セットを取得する．
+学習データ2種類とテストデータ2条件の組み合わせを表~\ref{tab:matrix}に示す．4つのケース(A)--(D)が得られる．
+
+\begin{table}[htb]
+\begin{center}
+\caption{学習データ $\times$ テストデータの組み合わせ}\label{tab:matrix}
+\renewcommand{\arraystretch}{1.6}
+\begin{tabular}{cc|cc}
+\hline\hline
+\multicolumn{2}{c|}{} & \multicolumn{2}{c}{\textbf{テストデータ}}\\
+\multicolumn{2}{c|}{} & 基準条件 & 条件変更\\
+\hline
+\multirow{2}{*}{\rotatebox[origin=c]{90}{\footnotesize\textbf{学習データ}}}
+ & CG学習     & (A) & (B)\\
+ & 実画像学習 & (C) & (D)\\
+\hline\hline
+\end{tabular}
+\end{center}
+\end{table}
+
+この組み合わせを比較することで，次の3つの評価軸が立つ．
+\begin{enumerate}
+\item \uline{ドメインギャップ}〔(A) vs (C)〕：同一の基準条件テストで，CG学習と実画像学習を比較し，Sim2Realギャップを定量化する．
+\item \uline{条件汎化}〔(A) vs (B)，(C) vs (D)〕：同一の学習で，基準条件と条件変更を比較し，評価条件の変化に対する汎化性能を定量化する．
+\item \uline{学習ソースがロバスト性に与える影響}〔(B) vs (D)〕：条件変更テストで，CG学習と実画像学習を比較する．
+\end{enumerate}
+\subsection{予備検討・装置設定}
+\begin{enumerate}
+\item 配布されたCG学習データ（画像と姿勢角ラベル \texttt{labels.csv}）の中身を確認する．どの姿勢角でサンプリングされているか，実物と比べてどこが異なって見えるか（ドメインギャップ）を観察する．
+\item CG学習データが用意されたターゲットをロボットアーム先端に取り付ける．
+\item 基準条件として光源・カメラの位置・向きを決め，記録する．
+\end{enumerate}
+
+\subsection{基準条件でのデータ取得}
+基準条件のもとで，実画像の\uline{学習データ}と\uline{評価データ}をシングルスピンでそれぞれ取得する．いずれもロボットアームの角度を姿勢角の真値とする．
+\begin{enumerate}
+\item \uline{実画像学習データ}：姿勢角を等間隔（例：$30~{\rm deg}$刻み）に変えて撮像する．実画像から固有空間を構築するために使う．
+\item \uline{基準条件の評価データ}：姿勢推定の精度を測るためのテスト画像．学習に用いない姿勢角を含むよう，より細かい刻み（例：$10~{\rm deg}$）で撮像する．
+\end{enumerate}
+この評価データは，CG学習・実画像学習の両固有空間に対する基準条件でのテスト（表~\ref{tab:matrix}の(A)・(C)）に共通して用いる．
+
+\subsection{条件変更してのデータ取得}
+条件を変更し，変更後の条件でシングルスピンの\uline{評価データのみ}を取得する（\uline{条件変更の評価データ}）．学習データは取り直さない．変更量（角度・距離）は必ず記録すること．
+\begin{enumerate}
+\item \uline{必修：光源方向を変える．}光源を別方向へ向け直し，陰影が変わった状態で評価データを取得する．
+\item \uline{任意（時間が許せば）：カメラ距離を変える．}リニアレール上でカメラ位置をずらし，見かけの大きさが変わった状態でも評価データを取得して比較に加える．
+\end{enumerate}
+
+\subsection{姿勢決定と3軸比較(レポート記載)}
+\begin{enumerate}
+\item 全画像に前処理（グレースケール化・リサイズ等）を施す．
+\item \uline{CG学習}と\uline{実画像学習}のそれぞれから固有空間を構築する．
+\item 各固有空間へ\uline{基準条件}・\uline{条件変更}の評価データを射影し，最近傍により姿勢角を推定する．
+\item 推定値と真値を比較し，4通り（学習2$\times$評価条件2）の推定誤差を表・図にまとめる．
+\end{enumerate}
+
+\subsection{データ確認・撤収}
+取得した画像・ラベル・推定結果に抜けがないかを確認し，装置を撤収する．
+
+\subsection*{考察（必須）}
+以下はレポートで必ず論じること．
+\begin{enumerate}
+\item \uline{CG学習と実画像学習}で姿勢推定精度はどう変わったか．両者の差（ドメインギャップ）の主因は何か（例：マテリアルの反射特性，陰影，背景，解像度，ノイズ）．
+\item \uline{同条件評価（基準）と異条件評価（条件変更）}で精度はどう変わったか．その原因は何か．
+\item ドメインギャップと条件変化の\uline{どちらに対しても}ロバスト性を上げるには，学習データの作り方・前処理・手法をどう改善すればよいか提案せよ．
+\end{enumerate}
+
+\noindent 次の項目は\uline{任意課題}とする．
+\begin{itemize}
+\item 固有空間の次元$k$，学習データ数$N$，画像解像度が推定精度に与える影響．
+\item 推定誤差が大きくなる姿勢角の特定とその要因（形状の対称性・自己遮蔽・露出など）．
+\end{itemize}
+
+\vspace{\baselineskip}
+
+\section{レポート}
+\uline{グループでひとつのレポートを作成する．}
+本資料に書いてある原理，手順，仕様は省略可．目的，データ処理・姿勢決定方法，結果と考察，結論等を端的に述べる．
+データはGitHubリポジトリからダウンロードできる．
+
+提出期限・方法
+\begin{itemize}
+    \item 提出期限: 実施日翌週の月曜日20時
+    \item 提出先: Moodle
+    \item ファイルフォーマット: pdf    
+\end{itemize}
+
+\section*{Appendix}
+プログラムと取得したデータ，および配布用CG学習データはGitHubリポジトリにuploadしている．
+\begin{itemize}
+    \item \texttt{changeNames.m}は指定したディレクトリの\texttt{jpeg}ファイルを連番ファイル名に変更する．（実験で得られる画像ファイル名はタイムスタンプ．）
+    \item \texttt{mainEigenSpace.mlx}は学習データとテストデータを読み込み，固有空間法により姿勢決定する基本版である．星印は変更が必要な箇所（パラメータ）を意味する．
+    \item \texttt{eigenSpaceCG.m}はCG学習データ（\texttt{labels.csv}付き）と実画像を読み込み，CG学習・実画像学習それぞれの固有空間で姿勢推定を行い，両者を比較する（本実験の3軸比較に対応）．
+    \item CG学習データは物理ベースレンダラ（Mitsuba 3）で生成される．レンダリング用スクリプトとプリセットも同梱しており，姿勢角ラベル付き画像セットを再生成できる．
+\end{itemize}
+
+
+
+
+\bibliographystyle{plain}
+\bibliography{yoshimura}
+
+\end{document}
