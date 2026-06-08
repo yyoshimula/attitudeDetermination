@@ -39,10 +39,10 @@ camera_target:
 - 0
 camera_fov: 60
 sun_direction:
-- 0.8660254037844386
+- 0.9396926207859083
 - -0.0
-- -0.5000000000000001
-sun_azimuth_deg: 60
+- -0.3420201433256688
+sun_azimuth_deg: 70
 sun_elevation_deg: 0
 sun_irradiance:
 - 5
