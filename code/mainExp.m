@@ -31,6 +31,7 @@ preview(cam, imageHandle);
 % end
 %%
 %[text] ## initializing 6th servo angle
+ensureReady(arm);          % エラー/警告をクリアして READY(state=0) に入れ直す
 res = arm.set_servo_angle(pyargs( ...
     'servo_id', int32(6), ...
     'angle', -360, ...
@@ -38,7 +39,17 @@ res = arm.set_servo_angle(pyargs( ...
     'wait', true, ...
     'relative', false, ...
     'speed', 60, ...
-    'timeout', 5));    % 最大 5 秒待機
+    'timeout', 8));    % 360°移動は 60°/s で 6秒かかるため余裕をもって 8秒
+if double(res) ~= 0
+    ensureReady(arm);      % 失敗したら復旧してから 1回だけ再試行
+    res = arm.set_servo_angle(pyargs( ...
+        'servo_id', int32(6), 'angle', -360, 'is_radian', false, ...
+        'wait', true, 'relative', false, 'speed', 60, 'timeout', 8));
+    if double(res) ~= 0
+        error("mainExp:initFailed", ...
+            "初期化移動に失敗 (code=%d)。アームの状態を確認してください。", int32(res));
+    end
+end
 
 pause(10);
 %%
@@ -61,11 +72,25 @@ for i = 1:nAtti
         'wait', true, ...
         'relative', false, ...
         'speed', 30, ...
-        'timeout', 5));    % 最大 5 秒待機
+        'timeout', 8));    % 最大 8 秒待機
+
+    if double(res) ~= 0   % 0 以外は失敗 → 復旧して 1回だけ再試行
+        warning("mainExp:moveRetry", ...
+            "set_servo_angle 失敗 code=%d (i=%d, angle=%g)。状態を復旧して再試行。", ...
+            int32(res), i, trainAtti(i));
+        ensureReady(arm);
+        res = arm.set_servo_angle(pyargs( ...
+            'servo_id', int32(6), 'angle', trainAtti(i), 'is_radian', false, ...
+            'wait', true, 'relative', false, 'speed', 30, 'timeout', 8));
+        if double(res) ~= 0
+            error("mainExp:moveFailed", ...
+                "復旧後も移動に失敗 (code=%d, i=%d)。撮影を中断します。", int32(res), i);
+        end
+    end
 
     pause(3)
 
-    img = snapshot(cam);            % フレーム取得
+    img = snapshot(cam);            % 移動成功を確認してからフレーム取得
 
     timeStamp = datetime('now', 'Format', 'yyyyMMdd-HHmmss');
     fName = strcat(string(timeStamp), '.jpeg');
@@ -103,6 +128,18 @@ end
 %     disp('再接続に成功しました');
 % end
 
+end
+
+%[text] ## helper: アームを READY(state=0) に入れ直す
+function ensureReady(arm)
+% エラー/警告をクリアして、motion_enable → Position モード → READY に戻す。
+% code=9 (state is not ready to move) はこれで解消できることが多い。
+arm.clean_warn();
+arm.clean_error();
+arm.motion_enable(pyargs('enable', true));
+arm.set_mode(int32(0));     % Position
+arm.set_state(int32(0));    % Ready
+pause(0.5);
 end
 
 %[appendix]{"version":"1.0"}
