@@ -43,7 +43,7 @@ res = arm.set_servo_angle(pyargs( ...
 pause(10);
 %%
 %[text] ## attitude
-trainAtti = -360:30:0; % ここを書き換える
+trainAtti = -360:20:0; % ここを書き換える
 nAtti = length(trainAtti);
 
 % 画像の保存先（無ければ作成）
