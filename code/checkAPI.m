@@ -2,15 +2,15 @@
 
 
 %% 0. Python と SDK をロード
-pyenv("Version", fullfile(getenv("HOME"),"venv/xarm/bin/python3.10"), ...
-    "ExecutionMode","InProcess");
+pyenv("Version", "/usr/bin/python3", ...
+    "ExecutionMode","OutOfProcess");   % InProcess だと xArm のスレッド print でクラッシュ
 
 %% 1. モジュール & クラスを取得  -------------【チェック①】
 xw       = py.importlib.import_module("xarm.wrapper");
 XArmAPI  = xw.xarm_api.XArmAPI;     % → ここでエラーなら SDK が壊れている
 
 %% 2. インスタンス化して move_line の有無を判定  -------------【チェック②】
-arm = XArmAPI("192.168.1.156", prot_flag=int32(1));   % IP を自分のに変更
+arm = XArmAPI("192.168.2.156", prot_flag=int32(1));   % IP を自分のに変更
 hasML = py.hasattr(arm, "set_position")
 fprintf("set_position available? %s\n", string(hasML));  % ← 必ず true になる
 

@@ -1,4 +1,4 @@
-cam = webcam("HDMI USB Camera");            % 必要なら名前で指定
+cam = webcam("HD USB Camera");            % 必要なら名前で指定
 
 %-- プレビューフィギュア --------------------------------------
 app.UIAxes = figure;

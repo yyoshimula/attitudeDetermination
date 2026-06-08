@@ -1,14 +1,17 @@
 %% 0. Python & SDK 準備  (clear classes は pyenv の前)
-pe = pyenv("Version", fullfile(getenv("HOME"), "venv/xarm/bin/python3.10"), "ExecutionMode","InProcess");
+% OutOfProcess: xArm SDK のレポートスレッドからの print が MATLAB 本体に
+% 割り込んでクラッシュするのを防ぐ（InProcess だと落ちる）
+pe = pyenv("Version", "/usr/bin/python3", "ExecutionMode","OutOfProcess");
 
 % 1) wrapper モジュールを import
 xarm = py.importlib.import_module("xarm.wrapper");
 
 % 2) クラス XArmAPI を取り出す
 XArmAPI = xarm.XArmAPI;
-ROBOT_IP = "192.168.1.156";
+ROBOT_IP = "192.168.2.156";
 
 %% 1. 接続 ＆ READY
+global arm    % mainExp（GUIのstart）と arm ハンドルを共有する
 arm = xarm.XArmAPI(ROBOT_IP, prot_flag=int32(1));  % V1 強制
 pause(0.5);
 
