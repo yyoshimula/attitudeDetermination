@@ -6,6 +6,7 @@ AGENTS.md
 CHANGELOG.md
 **/CLAUDE.md
 **/AGENTS.md
+docs/2026航空宇宙工学実験.pdf
 
 # --- CGレンダラ（学生には配布しない。CG学習画像は code/data/cg_train に同梱済み） ---
 #     ※ レンダラも配布したい場合はこの行を削除（ただし venv/assets が巨大なので注意）
