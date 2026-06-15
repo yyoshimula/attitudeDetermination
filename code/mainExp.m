@@ -54,7 +54,7 @@ end
 pause(10);
 %%
 %[text] ## attitude
-trainAtti = -360:20:0; % ここを書き換える
+trainAtti = -360:10:0; % ここを書き換える
 nAtti = length(trainAtti);
 
 % 画像の保存先（無ければ作成）
@@ -90,7 +90,7 @@ for i = 1:nAtti
 
     pause(3)
 
-    img = snapshot(cam);            % 移動成功を確認してからフレーム取得
+    img = safeSnapshot(cam, imageHandle);   % 移動成功を確認してからフレーム取得（タイムアウト耐性つき）
 
     timeStamp = datetime('now', 'Format', 'yyyyMMdd-HHmmss');
     fName = strcat(string(timeStamp), '.jpeg');
@@ -140,6 +140,34 @@ arm.motion_enable(pyargs('enable', true));
 arm.set_mode(int32(0));     % Position
 arm.set_state(int32(0));    % Ready
 pause(0.5);
+end
+
+%[text] ## helper: snapshot をタイムアウトに強くする
+function img = safeSnapshot(cam, imageHandle)
+% HDMI/USB キャプチャ系カメラは「フレーム取得タイムアウト」をまれに出すので、
+% 1回失敗しただけで実験を止めず、短い待機を挟んで再試行する。
+% それでもダメな場合はプレビューを入れ直してストリームを起こしてから再度試す。
+maxTry = 5;
+for k = 1:maxTry
+    try
+        img = snapshot(cam);
+        return;                       % 成功したら抜ける
+    catch ME
+        if k == maxTry
+            rethrow(ME);              % 最後まで失敗したら本来のエラーを投げる
+        end
+        warning("mainExp:snapTimeout", ...
+            "snapshot 失敗 (%d/%d): %s。再試行します。", k, maxTry, ME.message);
+        pause(0.5);
+        if k >= 2
+            % 2回目以降の失敗ではプレビューを入れ直してストリームを起こす
+            try, closePreview(cam); catch, end %#ok<CTCH>
+            pause(0.3);
+            try, preview(cam, imageHandle); catch, end %#ok<CTCH>
+            pause(0.5);
+        end
+    end
+end
 end
 
 %[appendix]{"version":"1.0"}
