@@ -30,32 +30,31 @@ preview(cam, imageHandle);
 %     error("get_position failed, code=%d", code);
 % end
 %%
-%[text] ## initializing 6th servo angle
+%[text] ## 現在の J6 角度を取得して、そこから 360° を一定刻みで回転
 ensureReady(arm);          % エラー/警告をクリアして READY(state=0) に入れ直す
-res = arm.set_servo_angle(pyargs( ...
-    'servo_id', int32(6), ...
-    'angle', -360, ...
-    'is_radian', false, ...
-    'wait', true, ...
-    'relative', false, ...
-    'speed', 60, ...
-    'timeout', 8));    % 360°移動は 60°/s で 6秒かかるため余裕をもって 8秒
-if double(res) ~= 0
-    ensureReady(arm);      % 失敗したら復旧してから 1回だけ再試行
-    res = arm.set_servo_angle(pyargs( ...
-        'servo_id', int32(6), 'angle', -360, 'is_radian', false, ...
-        'wait', true, 'relative', false, 'speed', 60, 'timeout', 8));
-    if double(res) ~= 0
-        error("mainExp:initFailed", ...
-            "初期化移動に失敗 (code=%d)。アームの状態を確認してください。", int32(res));
-    end
-end
 
-pause(10);
+step = 10;                 % 刻み [deg]（ここを書き換える）
+
+% --- 現在の J6 角度を取得 ---
+tmp  = arm.get_servo_angle(pyargs('servo_id', int32(6), 'is_radian', false));
+code = double(tmp{1});
+if code ~= 0
+    error("mainExp:getAngle", "get_servo_angle 失敗 code=%d", code);
+end
+j6_0 = double(tmp{2});     % 現在の J6 角度 [deg]
+fprintf("Current J6 = %.2f deg\n", j6_0);
+
+% --- 余裕のある方向に 360° 回す（±360° の可動域を超えないように）---
+dir = -sign(j6_0);         % 0以上 → 負方向、0未満 → 正方向
+if dir == 0, dir = -1; end % j6_0 = 0 のときは負方向に回す
+total = dir * 360;         % 総回転量 [deg]
+
 %%
 %[text] ## attitude
-trainAtti = -360:10:0; % ここを書き換える
-nAtti = length(trainAtti);
+% 現在値 → 現在値+total を step 刻みで掃く絶対角の列
+trainAtti = j6_0 : dir*abs(step) : j6_0 + total;
+nAtti = numel(trainAtti);
+fprintf("Sweep J6: %.1f -> %.1f deg, %d points\n", trainAtti(1), trainAtti(end), nAtti);
 
 % 画像の保存先（無ければ作成）
 saveDir = "/Users/ssdl/Documents/MATLAB/attitudeDetermination/data";
@@ -99,6 +98,8 @@ for i = 1:nAtti
     fprintf('Saved %s \n', fPath );
 
 end
+
+disp('Finished')
 %%
 %[text] ## appendix
 % 先端姿勢を [x, y, z, 0, 30, 0]° に動かす
